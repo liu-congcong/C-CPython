@@ -66,60 +66,11 @@ int main(int argc, char **argv)
             // printf("scores: %f, %f, %f, max: %f, max: %f\n", scores[1], scores[2], scores[3], scores[0], score_table[row_index][column_index]);
         };
     };
-    
-    /*
-    for (row_index = 0; row_index < rows; row_index++)
-    {
-        for (column_index = 0; column_index < columns; column_index++)
-        {
-            if (column_index + 1 < columns)
-            {
-                printf("%lu\t", score_table[row_index][column_index]);
-            }
-            else
-            {
-                printf("%lu\n", score_table[row_index][column_index]);
-            }
-        };
-    };
-    for (row_index = 0; row_index < rows; row_index++)
-    {
-        for (column_index = 0; column_index < columns; column_index++)
-        {
-            if (column_index + 1 < columns)
-            {
-                printf("%d\t", path_table[row_index][column_index]);
-            }
-            else
-            {
-                printf("%d\n", path_table[row_index][column_index]);
-            }
-        };
-    };
-    */
+    free(row);
+    free(column);
 
     PATH *start_node = NULL;
     get_path(score_table, path_table, rows, columns, argv[1], argv[2], &start_node, &score, &length, region);
-    printf("alignment: %lu - %lu & %lu - %lu, alignment length: %lu, alignment score: %lu\n", region[0], region[1], region[2], region[3], length, score);
-    PATH *node = start_node;
-    while (node)
-    {
-        fputc(node->pair[0], stdout);
-        node = node->next;
-    }
-    node = start_node;
-    fputc('\n', stdout);
-    while (node)
-    {
-        fputc(node->pair[1], stdout);
-        node = node->next;
-    }
-    fputc('\n', stdout);
-    fflush(stdout);
-
-    /* release */
-    free(row);
-    free(column);
     for (row_index = 0; row_index < rows; row_index++)
     {
         free(score_table[row_index]);
@@ -127,13 +78,28 @@ int main(int argc, char **argv)
     };
     free(score_table);
     free(path_table);
+
+    char *alignment_row = malloc(sizeof(char) * (length + 1));
+    char *alignment_column = malloc(sizeof(char) * (length + 1));
+    alignment_row[length] = 0;
+    alignment_column[length] = 0;
+
+    PATH *node = start_node;
     PATH *temp_node = start_node;
-    while (start_node)
+    for (size_t node_index = 0; node_index < length; node_index++)
     {
-        temp_node = start_node->next;
-        free(start_node);
-        start_node = temp_node;
+        alignment_row[node_index] = node->pair[0];
+        alignment_column[node_index] = node->pair[1];
+        node = node->next;
+        free(temp_node);
+        temp_node = node;
     }
+    
+    printf("alignment: %lu - %lu <-> %lu - %lu, length: %lu, score: %lu\n", region[0], region[1], region[2], region[3], length, score);
+    puts(alignment_row);
+    free(alignment_row);
+    puts(alignment_column);
+    free(alignment_column);
     return (0);
 }
 
@@ -197,8 +163,8 @@ int get_path(size_t **score_table, short **path_table, const size_t rows, const 
             };
         };
     };
-    region[1] = score_row_index;
-    region[3] = score_column_index;
+    region[1] = score_column_index; // row string
+    region[3] = score_row_index; // column string
     *score = local_score;
     // printf("(%lu, %lu): %f\n", score_row_index, score_column_index, score);
 
@@ -206,8 +172,8 @@ int get_path(size_t **score_table, short **path_table, const size_t rows, const 
 
     while (score_row_index && score_column_index && score_table[score_row_index][score_column_index])
     {
-        region[0] = score_row_index;
-        region[2] = score_column_index;
+        region[0] = score_column_index; // row string
+        region[2] = score_row_index; // column string
         PATH *node = malloc(sizeof(PATH));
         switch (path_table[score_row_index][score_column_index])
         {
