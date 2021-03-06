@@ -12,7 +12,7 @@ typedef struct path
 
 int string2integers(const char *, size_t, unsigned short *);
 int get_source(int *, short *);
-int get_path(int **, short **, const size_t, const size_t, const char *, const char *, PATH **, size_t *, size_t *);
+int get_path(size_t **, short **, const size_t, const size_t, const char *, const char *, PATH **, size_t *, size_t *, size_t *);
 
 int main(int argc, char **argv)
 {
@@ -23,6 +23,7 @@ int main(int argc, char **argv)
     };
 
     size_t row_index, column_index, score, length;
+    size_t region[4] = {0, 0, 0, 0};
     const size_t rows = strlen(argv[2]) + 1;
     const size_t columns = strlen(argv[1]) + 1;
     const int score_hash[5][5] = {
@@ -42,14 +43,14 @@ int main(int argc, char **argv)
 
     // printf("rows: %lu\ncolumns: %lu\n", rows, columns);
 
-    int **score_table = (int **)malloc(sizeof(int *) * rows);
+    size_t **score_table = (size_t **)malloc(sizeof(size_t *) * rows);
     short **path_table = (short **)malloc(sizeof(short *) * rows);
     for (row_index = 0; row_index < rows; row_index++)
     {
-        score_table[row_index] = malloc(sizeof(int) * columns);
-        memset(score_table[row_index], 0, columns);
+        score_table[row_index] = malloc(sizeof(size_t) * columns);
+        memset(score_table[row_index], '\0', sizeof(size_t) * columns);
         path_table[row_index] = malloc(sizeof(short) * columns);
-        memset(score_table[row_index], 0, columns);
+        memset(path_table[row_index], '\0', sizeof(short) * columns);
     };
 
     for (row_index = 1; row_index < rows; row_index++)
@@ -65,9 +66,42 @@ int main(int argc, char **argv)
             // printf("scores: %f, %f, %f, max: %f, max: %f\n", scores[1], scores[2], scores[3], scores[0], score_table[row_index][column_index]);
         };
     };
+    
+    /*
+    for (row_index = 0; row_index < rows; row_index++)
+    {
+        for (column_index = 0; column_index < columns; column_index++)
+        {
+            if (column_index + 1 < columns)
+            {
+                printf("%lu\t", score_table[row_index][column_index]);
+            }
+            else
+            {
+                printf("%lu\n", score_table[row_index][column_index]);
+            }
+        };
+    };
+    for (row_index = 0; row_index < rows; row_index++)
+    {
+        for (column_index = 0; column_index < columns; column_index++)
+        {
+            if (column_index + 1 < columns)
+            {
+                printf("%d\t", path_table[row_index][column_index]);
+            }
+            else
+            {
+                printf("%d\n", path_table[row_index][column_index]);
+            }
+        };
+    };
+    */
+
     PATH *start_node = NULL;
-    get_path(score_table, path_table, rows, columns, argv[1], argv[2], &start_node, &score, &length);
-    printf("alignment length: %lu, alignment score: %lu\n", length, score);
+    get_path(score_table, path_table, rows, columns, argv[1], argv[2], &start_node, &score, &length, region);
+    printf("alignment: %lu - %lu & %lu - %lu, alignment length: %lu, alignment score: %lu\n", region[0], region[1], region[2], region[3], length, score);
+    fflush(stdout);
     PATH *node = start_node;
     while (node)
     {
@@ -94,7 +128,7 @@ int main(int argc, char **argv)
     free(score_table);
     free(path_table);
     PATH *temp_node = start_node;
-    while (start_node->next)
+    while (start_node)
     {
         temp_node = start_node->next;
         free(start_node);
@@ -145,7 +179,7 @@ int get_source(int *numbers, short *source)
     return (0);
 }
 
-int get_path(int **score_table, short **path_table, const size_t rows, const size_t columns, const char *row, const char *column, PATH **start_node, size_t *score, size_t *length)
+int get_path(size_t **score_table, short **path_table, const size_t rows, const size_t columns, const char *row, const char *column, PATH **start_node, size_t *score, size_t *length, size_t *region)
 {
     size_t local_score = 0, local_score_, row_index, column_index, score_row_index, score_column_index, local_length = 0;
 
@@ -154,6 +188,7 @@ int get_path(int **score_table, short **path_table, const size_t rows, const siz
         for (column_index = 0; column_index < columns; column_index++)
         {
             local_score_ = score_table[row_index][column_index];
+            //printf("(%lu, %lu): %lu\n", row_index, column_index, local_score_);
             if (local_score_ >= local_score)
             {
                 local_score = local_score_;
@@ -162,13 +197,17 @@ int get_path(int **score_table, short **path_table, const size_t rows, const siz
             };
         };
     };
+    region[1] = score_row_index;
+    region[3] = score_column_index;
     *score = local_score;
     // printf("(%lu, %lu): %f\n", score_row_index, score_column_index, score);
 
     PATH *previous_node = NULL;
 
-    while (score_row_index && score_column_index)
+    while (score_row_index && score_column_index && score_table[score_row_index][score_column_index])
     {
+        region[0] = score_row_index;
+        region[2] = score_column_index;
         PATH *node = malloc(sizeof(PATH));
         switch (path_table[score_row_index][score_column_index])
         {
