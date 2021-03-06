@@ -48,9 +48,9 @@ int main(int argc, char **argv)
     for (row_index = 0; row_index < rows; row_index++)
     {
         score_table[row_index] = malloc(sizeof(size_t) * columns);
-        memset(score_table[row_index], '\0', sizeof(size_t) * columns);
+        memset(score_table[row_index], 0, sizeof(size_t) * columns);
         path_table[row_index] = malloc(sizeof(short) * columns);
-        memset(path_table[row_index], '\0', sizeof(short) * columns);
+        memset(path_table[row_index], 0, sizeof(short) * columns);
     };
 
     for (row_index = 1; row_index < rows; row_index++)
@@ -101,7 +101,6 @@ int main(int argc, char **argv)
     PATH *start_node = NULL;
     get_path(score_table, path_table, rows, columns, argv[1], argv[2], &start_node, &score, &length, region);
     printf("alignment: %lu - %lu & %lu - %lu, alignment length: %lu, alignment score: %lu\n", region[0], region[1], region[2], region[3], length, score);
-    fflush(stdout);
     PATH *node = start_node;
     while (node)
     {
@@ -116,6 +115,7 @@ int main(int argc, char **argv)
         node = node->next;
     }
     fputc('\n', stdout);
+    fflush(stdout);
 
     /* release */
     free(row);
