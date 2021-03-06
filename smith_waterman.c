@@ -12,7 +12,7 @@ typedef struct path
 
 int string2integers(const char *, size_t, unsigned short *);
 int get_source(int *, short *);
-int get_path(int **, short **, const size_t, const size_t, const char *, const char *, PATH **);
+int get_path(int **, short **, const size_t, const size_t, const char *, const char *, PATH **, size_t *, size_t *);
 
 int main(int argc, char **argv)
 {
@@ -21,7 +21,8 @@ int main(int argc, char **argv)
         printf("Usage: smith_waterman string1 string2.\n");
         exit(EXIT_FAILURE);
     };
-    size_t row_index, column_index;
+
+    size_t row_index, column_index, score, length;
     const size_t rows = strlen(argv[2]) + 1;
     const size_t columns = strlen(argv[1]) + 1;
     const int score_hash[5][5] = {
@@ -30,8 +31,8 @@ int main(int argc, char **argv)
         -4, -4, 5, -4, -4,
         -4, -4, -4, 5, -4,
         -4, -4, -4, -4, -4}; // ACGTN
-    int scores[4];                // max score, left score, left & top score, top score
-    short source;                    // left -1, left & top 0, top 1
+    int scores[4];           // max score, left score, left & top score, top score
+    short source;            // left -1, left & top 0, top 1
 
     unsigned short *row = malloc(sizeof(unsigned short) * columns);
     unsigned short *column = malloc(sizeof(unsigned short) * rows);
@@ -65,8 +66,8 @@ int main(int argc, char **argv)
         };
     };
     PATH *start_node = NULL;
-    int score = get_path(score_table, path_table, rows, columns, argv[1], argv[2], &start_node);
-    printf("alignment score: %d\n", score);
+    get_path(score_table, path_table, rows, columns, argv[1], argv[2], &start_node, &score, &length);
+    printf("alignment length: %lu, alignment score: %lu\n", length, score);
     PATH *node = start_node;
     while (node)
     {
@@ -144,24 +145,24 @@ int get_source(int *numbers, short *source)
     return (0);
 }
 
-int get_path(int **score_table, short **path_table, const size_t rows, const size_t columns, const char *row, const char *column, PATH **start_node)
+int get_path(int **score_table, short **path_table, const size_t rows, const size_t columns, const char *row, const char *column, PATH **start_node, size_t *score, size_t *length)
 {
-    int score = -1, temp_score;
-    size_t row_index, column_index, score_row_index, score_column_index;
+    size_t local_score = 0, local_score_, row_index, column_index, score_row_index, score_column_index, local_length = 0;
 
     for (row_index = 0; row_index < rows; row_index++)
     {
         for (column_index = 0; column_index < columns; column_index++)
         {
-            temp_score = score_table[row_index][column_index];
-            if (temp_score > score)
+            local_score_ = score_table[row_index][column_index];
+            if (local_score_ >= local_score)
             {
-                score = temp_score;
+                local_score = local_score_;
                 score_row_index = row_index;
                 score_column_index = column_index;
             };
         };
     };
+    *score = local_score;
     // printf("(%lu, %lu): %f\n", score_row_index, score_column_index, score);
 
     PATH *previous_node = NULL;
@@ -194,9 +195,11 @@ int get_path(int **score_table, short **path_table, const size_t rows, const siz
         }
         break;
         };
+        local_length++;
         node->next = previous_node;
         previous_node = node;
     }
+    *length = local_length;
     *start_node = previous_node;
-    return (score);
+    return (0);
 }
